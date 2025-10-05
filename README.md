@@ -1,6 +1,6 @@
 # HarrBot
 
-HarrBot is a versatile WhatsApp bot built with Baileys, based on the Hitori bot by Nazedev. It comes packed with a wide range of features, from games and downloaders to AI and image manipulation tools.
+HarrBot is a versatile WhatsApp bot built with Baileys. It comes packed with a wide range of features, from games and downloaders to AI and image manipulation tools.
 
 ## Features
 
