@@ -172,9 +172,14 @@ async function LoadDataBase(naze, m) {
 			register: false,
 			limit: limitUser,
 			money: moneyUser,
-			lastclaim: Date.now(),
-			lastbegal: Date.now(),
 			lastrampok: Date.now(),
+			xp: 0,
+			level: 1,
+			lastAirdrop: 0,
+			xp: 0,
+			level: 1,
+			xp: 0,
+			level: 1,
 		};
 		for (let key in defaultUser) {
 			if (!(key in user)) user[key] = defaultUser[key];

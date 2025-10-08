@@ -47,6 +47,7 @@ const { JadiBot, StopJadiBot, ListJadiBot } = require('./src/jadibot');
 const { imageToWebp, videoToWebp, gifToWebp, writeExif } = require('./lib/exif');
 const { cmdAdd, cmdDel, cmdAddHit, addExpired, getPosition, getExpired, getStatus, checkStatus, getAllExpired, checkExpired } = require('./src/database');
 const { rdGame, iGame, tGame, gameSlot, gameCasinoSolo, gameSamgongSolo, gameMerampok, gameBegal, daily, buy, setLimit, addLimit, addMoney, setMoney, transfer, Blackjack, SnakeLadder, korupsi } = require('./lib/game');
+const bank = require('./lib/bank');
 const { pinterest, wallpaper, remini, wikimedia, hitamkan, yanzGpt, mediafireDl, ringtone, styletext, instagramDl, tiktokDl, facebookDl, instaStalk, telegramStalk, tiktokStalk, genshinStalk, instaStory, bk9Ai, spotifyDl, ytMp4, ytMp3, NvlGroup, quotedLyo, youSearch, gptLogic, savetube, simi, geminiAi } = require('./lib/screaper');
 const { unixTimestampSeconds, generateMessageTag, processTime, webApi, getRandom, getBuffer, fetchJson, runtime, clockString, sleep, isUrl, getTime, formatDate, formatp, jsonformat, reSize, toHD, logic, generateProfilePicture, bytesToSize, errorCache, normalize, getSizeMedia, parseMention, getGroupAdmins, readFileTxt, readFileJson, getHashedPassword, generateAuthToken, cekMenfes, generateToken, batasiTeks, randomText, isEmoji, getTypeUrlMedia, pickRandom, convertTimestampToDate, getAllHTML, tarBackup } = require('./lib/function');
 
@@ -1548,6 +1549,330 @@ module.exports = naze = async (naze, m, msg, store) => {
 			break
 			
 			// Bot Menu
+			case 'owner': case 'listowner': {
+				await naze.sendContact(m.chat, ownerNumber, m);
+			}
+			break
+case 'bank': {
+    const user = m.sender;
+    const balanceResult = bank.getBalance(user);
+    const bankMenu = `
+*🏦 Bank Menu*
+
+Hello, ${m.pushName}!
+
+- ${prefix}create-bank
+- ${prefix}balance
+- ${prefix}atm
+    `;
+
+    if (balanceResult.success) {
+        naze.sendMessage(m.chat, {
+            image: { url: './src/media/bank.jpg' },
+            caption: `
+*🏦 Bank Menu*
+
+Your Balance: ${balanceResult.balance}
+
+- ${prefix}atm
+- ${prefix}transfer-bank <user> <amount>
+`
+        }, { quoted: m });
+    } else {
+        naze.sendMessage(m.chat, {
+            image: { url: './src/media/bank.jpg' },
+            caption: bankMenu
+        }, { quoted: m });
+    }
+}
+break;
+
+case 'create-bank': {
+    const user = m.sender;
+    const createResult = bank.createAccount(user);
+    m.reply(createResult.message);
+}
+break;
+
+case 'balance': {
+    const user = m.sender;
+    const balanceResult = bank.getBalance(user);
+    if (balanceResult.success) {
+        m.reply(`Your balance is: ${balanceResult.balance}`);
+    } else {
+        m.reply(balanceResult.message);
+    }
+}
+break;
+
+case 'atm': {
+    const user = m.sender;
+    const balanceResult = bank.getBalance(user);
+if (!balanceResult.success) {
+    return m.reply(balanceResult.message);
+}
+
+const atmMenu = `
+*🏧 ATM Menu*
+
+Your Balance: ${balanceResult.balance}
+
+- ${prefix}deposit <amount>
+- ${prefix}withdraw <amount>
+`;
+
+    naze.sendMessage(m.chat, {
+        image: { url: './src/media/atm.jpg' },
+        caption: atmMenu
+    }, { quoted: m });
+}
+break;
+
+case 'deposit': {
+    const user = m.sender;
+    const amount = parseInt(args[0]);
+    if (isNaN(amount) || amount <= 0) {
+        return m.reply('Invalid amount.');
+    }
+    const depositResult = bank.deposit(user, amount);
+    m.reply(depositResult.message);
+}
+break;
+
+case 'withdraw': {
+    const user = m.sender;
+    const amount = parseInt(args[0]);
+    if (isNaN(amount) || amount <= 0) {
+        return m.reply('Invalid amount.');
+    }
+    const withdrawResult = bank.withdraw(user, amount);
+    m.reply(withdrawResult.message);
+}
+break;
+
+case 'transfer-bank': {
+    const fromUser = m.sender;
+    const toUser = m.mentionedJid[0];
+    const amount = parseInt(args[1]);
+
+    if (!toUser || isNaN(amount) || amount <= 0) {
+        return m.reply(`Invalid command. Use: ${prefix}transfer-bank @user <amount>`);
+    }
+
+    const transferResult = bank.transfer(fromUser, toUser, amount);
+    m.reply(transferResult.message);
+}
+break;
+case 'hunt': {
+    const user = m.sender;
+    const cooldown = 600000; // 10 minutes
+    const lastHunt = rpgCooldowns.get(user);
+
+    if (lastHunt && (Date.now() - lastHunt < cooldown)) {
+        const remaining = cooldown - (Date.now() - lastHunt);
+        return m.reply(`You need to wait ${clockString(remaining)} before hunting again.`);
+    }
+
+    const moneyGained = Math.floor(Math.random() * 1000) + 500;
+    const xpGained = Math.floor(Math.random() * 50) + 20;
+
+    db.users[user].money += moneyGained;
+    db.users[user].xp += xpGained;
+
+    // Leveling up logic
+    const currentLevel = db.users[user].level;
+    const newLevel = Math.floor(Math.sqrt(db.users[user].xp / 100));
+
+    if (newLevel > currentLevel) {
+        db.users[user].level = newLevel;
+        m.reply(`Congratulations! You've leveled up to level ${newLevel}!`);
+    }
+
+    rpgCooldowns.set(user, Date.now());
+
+    naze.sendMessage(m.chat, {
+        image: { url: './src/media/hunt.jpg' },
+        caption: `*🏹 Hunt Results 🏹*\n\nYou went hunting and gained:\n\n💰 Money: ${moneyGained}\n✨ XP: ${xpGained}`
+    }, { quoted: m });
+}
+break;
+case 'adventure': {
+    const user = m.sender;
+    const cooldown = 1200000; // 20 minutes
+    const lastAdventure = rpgCooldowns.get(user + 'adventure');
+
+    if (lastAdventure && (Date.now() - lastAdventure < cooldown)) {
+        const remaining = cooldown - (Date.now() - lastAdventure);
+        return m.reply(`You need to wait ${clockString(remaining)} before going on an adventure again.`);
+    }
+
+    const moneyGained = Math.floor(Math.random() * 2000) + 1000;
+    const xpGained = Math.floor(Math.random() * 100) + 50;
+
+    db.users[user].money += moneyGained;
+    db.users[user].xp += xpGained;
+
+    // Leveling up logic
+    const currentLevel = db.users[user].level;
+    const newLevel = Math.floor(Math.sqrt(db.users[user].xp / 100));
+
+    if (newLevel > currentLevel) {
+        db.users[user].level = newLevel;
+        m.reply(`Congratulations! You've leveled up to level ${newLevel}!`);
+    }
+
+    rpgCooldowns.set(user + 'adventure', Date.now());
+
+    naze.sendMessage(m.chat, {
+        image: { url: './src/media/adventure.jpg' },
+        caption: `*🌄 Adventure Results 🌄*\n\nYou went on an adventure and gained:\n\n💰 Money: ${moneyGained}\n✨ XP: ${xpGained}`
+    }, { quoted: m });
+}
+break;
+case 'dungeon': {
+    const user = m.sender;
+    const cooldown = 1800000; // 30 minutes
+    const lastDungeon = rpgCooldowns.get(user + 'dungeon');
+
+    if (lastDungeon && (Date.now() - lastDungeon < cooldown)) {
+        const remaining = cooldown - (Date.now() - lastDungeon);
+        return m.reply(`You need to wait ${clockString(remaining)} before entering a dungeon again.`);
+    }
+
+    const success = Math.random() < 0.6; // 60% chance of success
+
+    if (success) {
+        const moneyGained = Math.floor(Math.random() * 5000) + 2000;
+        const xpGained = Math.floor(Math.random() * 200) + 100;
+
+        db.users[user].money += moneyGained;
+        db.users[user].xp += xpGained;
+
+        // Leveling up logic
+        const currentLevel = db.users[user].level;
+        const newLevel = Math.floor(Math.sqrt(db.users[user].xp / 100));
+
+        if (newLevel > currentLevel) {
+            db.users[user].level = newLevel;
+            m.reply(`Congratulations! You've leveled up to level ${newLevel}!`);
+        }
+
+        naze.sendMessage(m.chat, {
+            image: { url: './src/media/dungeon.jpg' },
+            caption: `*🏰 Dungeon Results 🏰*\n\nYou successfully cleared the dungeon and gained:\n\n💰 Money: ${moneyGained}\n✨ XP: ${xpGained}`
+        }, { quoted: m });
+    } else {
+        const moneyLost = Math.floor(Math.random() * 1000) + 500;
+        db.users[user].money -= moneyLost;
+
+        naze.sendMessage(m.chat, {
+            image: { url: './src/media/dungeon.jpg' },
+            caption: `*🏰 Dungeon Results 🏰*\n\nYou failed to clear the dungeon and lost ${moneyLost} money.`
+        }, { quoted: m });
+    }
+
+    rpgCooldowns.set(user + 'dungeon', Date.now());
+}
+break;
+case 'shop': {
+    const shopMenu = `
+*🛍️ Shop 🛍️*\n\nWelcome to the shop! Here are the items you can buy:\n\n- *Limit*: 500 money each\n\nUse ` + '`' + `${prefix}buy <item> <amount>` + '`' + ` to purchase.
+Example: ` + '`' + `${prefix}buy limit 10` + '`' + `
+    `;
+
+    naze.sendMessage(m.chat, {
+        image: { url: './src/media/shop.jpg' },
+        caption: shopMenu
+    }, { quoted: m });
+}
+break;
+case 'mancing': {
+    const user = m.sender;
+    const cooldown = 300000; // 5 minutes
+    const lastMancing = rpgCooldowns.get(user + 'mancing');
+
+    if (lastMancing && (Date.now() - lastMancing < cooldown)) {
+        const remaining = cooldown - (Date.now() - lastMancing);
+        return m.reply(`You need to wait ${clockString(remaining)} before fishing again.`);
+    }
+
+    const moneyGained = Math.floor(Math.random() * 500) + 100;
+
+    db.users[user].money += moneyGained;
+
+    rpgCooldowns.set(user + 'mancing', Date.now());
+
+    naze.sendMessage(m.chat, {
+        image: { url: './src/media/mancing.jpg' },
+        caption: `*🎣 Fishing Results 🎣*\n\nYou went fishing and caught some fish!\n\nYou sold them for ${moneyGained} money.`
+    }, { quoted: m });
+}
+break;
+case 'airdrop': {
+    const user = m.sender;
+    const cooldown = 86400000; // 24 hours
+    const lastAirdrop = db.users[user].lastAirdrop;
+
+    if (lastAirdrop && (Date.now() - lastAirdrop < cooldown)) {
+        const remaining = cooldown - (Date.now() - lastAirdrop);
+        return m.reply(`You have already claimed the airdrop. Come back in ${clockString(remaining)}.`);
+    }
+
+    const moneyGained = Math.floor(Math.random() * 10000) + 5000;
+
+    db.users[user].money += moneyGained;
+    db.users[user].lastAirdrop = Date.now();
+
+    naze.sendMessage(m.chat, {
+        image: { url: './src/media/airdrop.jpg' },
+        caption: `*🪂 Airdrop Claimed! 🪂*\n\nYou have successfully claimed the airdrop and received ${moneyGained} money!`
+    }, { quoted: m });
+}
+break;
+case 'airdrop': {
+    const user = m.sender;
+    const cooldown = 86400000; // 24 hours
+    const lastAirdrop = db.users[user].lastAirdrop;
+
+    if (lastAirdrop && (Date.now() - lastAirdrop < cooldown)) {
+        const remaining = cooldown - (Date.now() - lastAirdrop);
+        return m.reply(`You have already claimed the airdrop. Come back in ${clockString(remaining)}.`);
+    }
+
+    const moneyGained = Math.floor(Math.random() * 10000) + 5000;
+
+    db.users[user].money += moneyGained;
+    db.users[user].lastAirdrop = Date.now();
+
+    naze.sendMessage(m.chat, {
+        image: { url: './src/media/airdrop.jpg' },
+        caption: `*🪂 Airdrop Claimed! 🪂*\n\nYou have successfully claimed the airdrop and received ${moneyGained} money!`
+    }, { quoted: m });
+}
+break;
+case 'shop': {
+    const shopMenu = `
+*🛍️ Shop 🛍️*
+
+Welcome to the shop! Here are the items you can buy:
+
+- *Limit*: 500 money each
+
+Use 
+${prefix}buy <item> <amount>
+ to purchase.
+Example: 
+${prefix}buy limit 10
+    `;
+
+    naze.sendMessage(m.chat, {
+        image: { url: './src/media/shop.jpg' },
+        caption: shopMenu
+    }, { quoted: m });
+}
+break;
+			
+
 			case 'owner': case 'listowner': {
 				await naze.sendContact(m.chat, ownerNumber, m);
 			}
