@@ -46,7 +46,7 @@ const { GroupUpdate, LoadDataBase } = require('./src/message');
 const { JadiBot, StopJadiBot, ListJadiBot } = require('./src/jadibot');
 const { imageToWebp, videoToWebp, gifToWebp, writeExif } = require('./lib/exif');
 const { cmdAdd, cmdDel, cmdAddHit, addExpired, getPosition, getExpired, getStatus, checkStatus, getAllExpired, checkExpired } = require('./src/database');
-const { rdGame, iGame, tGame, gameSlot, gameCasinoSolo, gameSamgongSolo, gameMerampok, gameBegal, daily, buy, setLimit, addLimit, addMoney, setMoney, transfer, Blackjack, SnakeLadder, Bansos } = require('./lib/game');
+const { rdGame, iGame, tGame, gameSlot, gameCasinoSolo, gameSamgongSolo, gameMerampok, gameBegal, daily, buy, setLimit, addLimit, addMoney, setMoney, transfer, Blackjack, SnakeLadder, korupsi } = require('./lib/game');
 const { pinterest, wallpaper, remini, wikimedia, hitamkan, yanzGpt, mediafireDl, ringtone, styletext, instagramDl, tiktokDl, facebookDl, instaStalk, telegramStalk, tiktokStalk, genshinStalk, instaStory, bk9Ai, spotifyDl, ytMp4, ytMp3, NvlGroup, quotedLyo, youSearch, gptLogic, savetube, simi, geminiAi } = require('./lib/screaper');
 const { unixTimestampSeconds, generateMessageTag, processTime, webApi, getRandom, getBuffer, fetchJson, runtime, clockString, sleep, isUrl, getTime, formatDate, formatp, jsonformat, reSize, toHD, logic, generateProfilePicture, bytesToSize, errorCache, normalize, getSizeMedia, parseMention, getGroupAdmins, readFileTxt, readFileJson, getHashedPassword, generateAuthToken, cekMenfes, generateToken, batasiTeks, randomText, isEmoji, getTypeUrlMedia, pickRandom, convertTimestampToDate, getAllHTML, tarBackup } = require('./lib/function');
 
@@ -3374,12 +3374,11 @@ break;
 				await gameBegal(naze, m, db)
 			}
 			break
-			case 'bansos' : {
-			    await Bansos(m, db)
+			case 'korupsi' : {
+			    await korupsi(m, db)
 			}
 			break
 			// ============ INVESTMENT SYSTEM ============
-// Tambahkan case ini di file naze.js setelah case 'bansos'
 
 case 'invest': case 'investasi': {
     const userData = db.users[m.sender]
@@ -3651,7 +3650,7 @@ case 'crypto': case 'kripto': {
     const updatePrices = () => {
         const now = Date.now()
         Object.keys(global.cryptoPrices).forEach(coin => {
-            if (now - global.cryptoPrices[coin].lastUpdate > 300000) { // 5 minutes
+            if (now - global.cryptoPrices[coin].lastUpdate > 100000) { 
                 const volatility = Math.random() * 0.1 - 0.05 // -5% to +5%
                 global.cryptoPrices[coin].price *= (1 + volatility)
                 global.cryptoPrices[coin].lastUpdate = now
@@ -4612,99 +4611,495 @@ ${prefix}dailyrpg - Daily quest`)
 }
 break
 
+// ============ IMPROVED RPG SYSTEM ============
+
+// Perbaiki case 'daftar' dengan class selection
 case 'daftar': case 'register': {
-    if (!db.users[m.sender].rpg) {
-        db.users[m.sender].rpg = {
-            registered: true,
-            level: 1,
-            exp: 0,
-            health: 100,
-            maxHealth: 100,
-            mana: 50,
-            maxMana: 50,
-            strength: 10,
-            defense: 5,
-            agility: 5,
-            intelligence: 5,
-            gold: 100,
-            inventory: {},
-            equipment: {
-                weapon: null,
-                armor: null,
-                accessory: null
-            },
-            skills: [],
-            quests: {},
-            stats: {
-                monstersKilled: 0,
-                dungeonsCleared: 0,
-                bossesDefeated: 0,
-                deaths: 0
-            },
-            lastAdventure: 0,
-            lastHunt: 0,
-            lastMining: 0,
-            lastFishing: 0,
-            lastDaily: 0
+    if (db.users[m.sender].rpg?.registered) {
+        return m.reply('Kamu sudah terdaftar sebagai petualang!')
+    }
+    
+    if (!text) {
+        return m.reply(`*PILIH CLASS KAMU*
+
+1. Warrior - High HP & Defense
+   - HP: 150 | Mana: 30
+   - STR: 15 | DEF: 10 | AGI: 5 | INT: 3
+
+2. Mage - High Mana & Intelligence
+   - HP: 80 | Mana: 100
+   - STR: 5 | DEF: 3 | AGI: 7 | INT: 15
+
+3. Archer - High Agility
+   - HP: 100 | Mana: 50
+   - STR: 10 | DEF: 5 | AGI: 15 | INT: 5
+
+4. Assassin - Balanced & Critical
+   - HP: 90 | Mana: 60
+   - STR: 12 | DEF: 4 | AGI: 12 | INT: 7
+
+Contoh: ${prefix}daftar warrior`)
+    }
+    
+    const classes = {
+        warrior: { hp: 150, mana: 30, str: 15, def: 10, agi: 5, int: 3 },
+        mage: { hp: 80, mana: 100, str: 5, def: 3, agi: 7, int: 15 },
+        archer: { hp: 100, mana: 50, str: 10, def: 5, agi: 15, int: 5 },
+        assassin: { hp: 90, mana: 60, str: 12, def: 4, agi: 12, int: 7 }
+    }
+    
+    const selectedClass = text.toLowerCase()
+    if (!classes[selectedClass]) return m.reply('Class tidak valid!')
+    
+    const classData = classes[selectedClass]
+    
+    db.users[m.sender].rpg = {
+        registered: true,
+        class: selectedClass,
+        level: 1,
+        exp: 0,
+        health: classData.hp,
+        maxHealth: classData.hp,
+        mana: classData.mana,
+        maxMana: classData.mana,
+        strength: classData.str,
+        defense: classData.def,
+        agility: classData.agi,
+        intelligence: classData.int,
+        gold: 100,
+        inventory: {
+            'Health Potion': 3,
+            'Mana Potion': 2
+        },
+        equipment: {
+            weapon: null,
+            armor: null,
+            accessory: null
+        },
+        skills: [],
+        quests: {
+            daily: null,
+            main: []
+        },
+        stats: {
+            monstersKilled: 0,
+            dungeonsCleared: 0,
+            bossesDefeated: 0,
+            deaths: 0,
+            criticalHits: 0,
+            damageDealt: 0,
+            damageTaken: 0
+        },
+        lastAdventure: 0,
+        lastHunt: 0,
+        lastMining: 0,
+        lastFishing: 0,
+        lastDaily: 0,
+        dungeonProgress: 0
+    }
+    
+    m.reply(`*REGISTRASI BERHASIL*
+
+Class: ${selectedClass.toUpperCase()}
+Level: 1
+
+Status:
+- HP: ${classData.hp}/${classData.hp}
+- Mana: ${classData.mana}/${classData.mana}
+- STR: ${classData.str}
+- DEF: ${classData.def}
+- AGI: ${classData.agi}
+- INT: ${classData.int}
+- Gold: 100
+
+Item Starter:
+- Health Potion x3
+- Mana Potion x2
+
+Gunakan ${prefix}adventure untuk mulai!`)
+}
+break
+
+// Perbaiki case 'profilerpg' dengan visualisasi lebih baik
+case 'profilerpg': case 'statrpg': {
+    const rpgData = db.users[m.sender].rpg
+    if (!rpgData?.registered) return m.reply(`Belum terdaftar! Gunakan ${prefix}daftar`)
+    
+    const expNeeded = rpgData.level * 100
+    const expProgress = Math.floor((rpgData.exp / expNeeded) * 20)
+    const hpBar = Math.floor((rpgData.health / rpgData.maxHealth) * 20)
+    const manaBar = Math.floor((rpgData.mana / rpgData.maxMana) * 20)
+    
+    const expBarFull = '█'.repeat(expProgress)
+    const expBarEmpty = '░'.repeat(20 - expProgress)
+    const hpBarFull = '█'.repeat(hpBar)
+    const hpBarEmpty = '░'.repeat(20 - hpBar)
+    const manaBarFull = '█'.repeat(manaBar)
+    const manaBarEmpty = '░'.repeat(20 - manaBar)
+    
+    // Calculate total stats with equipment
+    let totalStats = {
+        str: rpgData.strength,
+        def: rpgData.defense,
+        agi: rpgData.agility,
+        int: rpgData.intelligence
+    }
+    
+    // Equipment bonus
+    const equipmentBonus = {
+        'Iron Sword': { str: 5 },
+        'Steel Sword': { str: 10 },
+        'Excalibur': { str: 25 },
+        'Leather Armor': { def: 3 },
+        'Iron Armor': { def: 8 },
+        'Diamond Armor': { def: 20 }
+    }
+    
+    Object.values(rpgData.equipment).forEach(item => {
+        if (item && equipmentBonus[item]) {
+            Object.entries(equipmentBonus[item]).forEach(([stat, bonus]) => {
+                totalStats[stat] += bonus
+            })
         }
-        m.reply(`✅ *REGISTRASI BERHASIL!*
+    })
+    
+    let equipText = '*Equipment:*\n'
+    equipText += `- Weapon: ${rpgData.equipment.weapon || 'None'}\n`
+    equipText += `- Armor: ${rpgData.equipment.armor || 'None'}\n`
+    equipText += `- Accessory: ${rpgData.equipment.accessory || 'None'}\n`
+    
+    m.reply(`*RPG PROFILE*
 
-👤 Selamat datang di dunia RPG, ${m.pushName}!
+Name: ${m.pushName}
+Class: ${rpgData.class}
+Level: ${rpgData.level}
 
-📊 *Status Awal:*
-⚔️ Level: 1
-❤️ HP: 100/100
-💙 Mana: 50/50
-💪 Strength: 10
-🛡️ Defense: 5
-⚡ Agility: 5
-🧠 Intelligence: 5
-💰 Gold: 100
+EXP: ${rpgData.exp}/${expNeeded}
+[${expBarFull}${expBarEmpty}]
 
-Gunakan ${prefix}adventure untuk memulai petualangan!`)
+HP: ${rpgData.health}/${rpgData.maxHealth}
+[${hpBarFull}${hpBarEmpty}]
+
+Mana: ${rpgData.mana}/${rpgData.maxMana}
+[${manaBarFull}${manaBarEmpty}]
+
+*Base Stats:*
+- STR: ${rpgData.strength} (+${totalStats.str - rpgData.strength})
+- DEF: ${rpgData.defense} (+${totalStats.def - rpgData.defense})
+- AGI: ${rpgData.agility} (+${totalStats.agi - rpgData.agility})
+- INT: ${rpgData.intelligence} (+${totalStats.int - rpgData.intelligence})
+
+*Total Stats:*
+- STR: ${totalStats.str}
+- DEF: ${totalStats.def}
+- AGI: ${totalStats.agi}
+- INT: ${totalStats.int}
+
+${equipText}
+Gold: ${rpgData.gold.toLocaleString('id-ID')}
+
+*Statistics:*
+- Monsters: ${rpgData.stats.monstersKilled}
+- Dungeons: ${rpgData.stats.dungeonsCleared}
+- Bosses: ${rpgData.stats.bossesDefeated}
+- Deaths: ${rpgData.stats.deaths}
+- Critical Hits: ${rpgData.stats.criticalHits}`)
+}
+break
+
+// Tambah fitur dungeon yang lebih kompleks
+case 'dungeon': {
+    const rpgData = db.users[m.sender].rpg
+    if (!rpgData?.registered) return m.reply(`Belum terdaftar! Gunakan ${prefix}daftar`)
+    
+    if (rpgData.level < 5) return m.reply('Level minimal 5 untuk masuk dungeon!')
+    
+    const cooldown = 3600000 // 1 jam
+    const timeSince = Date.now() - (rpgData.lastDungeon || 0)
+    
+    if (timeSince < cooldown) {
+        const timeLeft = Math.ceil((cooldown - timeSince) / 60000)
+        return m.reply(`Tunggu ${timeLeft} menit untuk masuk dungeon lagi`)
+    }
+    
+    if (!text) {
+        return m.reply(`*DUNGEON SYSTEM*
+
+Pilih difficulty:
+1. Easy - Level 5+ (Reward: Low)
+2. Normal - Level 10+ (Reward: Medium)
+3. Hard - Level 15+ (Reward: High)
+4. Nightmare - Level 20+ (Reward: Very High)
+
+Format: ${prefix}dungeon <difficulty>
+Contoh: ${prefix}dungeon normal`)
+    }
+    
+    const difficulties = {
+        easy: { minLevel: 5, floors: 3, baseReward: 500, expReward: 100 },
+        normal: { minLevel: 10, floors: 5, baseReward: 1500, expReward: 300 },
+        hard: { minLevel: 15, floors: 7, baseReward: 3000, expReward: 600 },
+        nightmare: { minLevel: 20, floors: 10, baseReward: 6000, expReward: 1200 }
+    }
+    
+    const diff = difficulties[text.toLowerCase()]
+    if (!diff) return m.reply('Difficulty tidak valid!')
+    if (rpgData.level < diff.minLevel) return m.reply(`Level minimal ${diff.minLevel}!`)
+    
+    if (rpgData.health < rpgData.maxHealth * 0.5) {
+        return m.reply('HP terlalu rendah! Minimal 50% HP untuk masuk dungeon')
+    }
+    
+    rpgData.lastDungeon = Date.now()
+    
+    // Simulate dungeon run
+    let cleared = 0
+    let totalDamage = 0
+    let totalExp = 0
+    let totalGold = 0
+    let drops = []
+    
+    for (let floor = 1; floor <= diff.floors; floor++) {
+        const enemyPower = diff.minLevel * 5 * floor
+        const playerPower = rpgData.strength + rpgData.agility + rpgData.intelligence
+        
+        // Calculate success chance
+        const successChance = Math.min(90, (playerPower / enemyPower) * 100)
+        const success = Math.random() * 100 < successChance
+        
+        if (!success) {
+            const damage = Math.floor(enemyPower * 0.3)
+            rpgData.health -= damage
+            totalDamage += damage
+            break
+        }
+        
+        cleared++
+        const floorExp = diff.expReward * floor
+        const floorGold = diff.baseReward * floor
+        
+        totalExp += floorExp
+        totalGold += floorGold
+        
+        // Random drops
+        if (Math.random() < 0.3) {
+            const items = ['Magic Stone', 'Rare Ore', 'Ancient Coin', 'Gem Fragment']
+            const drop = pickRandom(items)
+            drops.push(drop)
+            rpgData.inventory[drop] = (rpgData.inventory[drop] || 0) + 1
+        }
+        
+        // Take some damage
+        const damage = Math.floor(enemyPower * 0.1)
+        rpgData.health -= damage
+        totalDamage += damage
+    }
+    
+    rpgData.exp += totalExp
+    rpgData.gold += totalGold
+    rpgData.stats.damageTaken += totalDamage
+    
+    if (cleared === diff.floors) {
+        rpgData.stats.dungeonsCleared++
+    }
+    
+    // Check level up
+    const expNeeded = rpgData.level * 100
+    let leveledUp = false
+    while (rpgData.exp >= expNeeded) {
+        rpgData.level++
+        rpgData.exp -= expNeeded
+        rpgData.maxHealth += 20
+        rpgData.maxMana += 10
+        rpgData.strength += 2
+        rpgData.defense += 1
+        rpgData.agility += 1
+        rpgData.intelligence += 1
+        leveledUp = true
+    }
+    
+    let result = `*DUNGEON ${text.toUpperCase()}*
+
+Cleared: ${cleared}/${diff.floors} floors
+${cleared === diff.floors ? 'DUNGEON COMPLETED!' : 'FAILED!'}
+
+Rewards:
+- EXP: +${totalExp}
+- Gold: +${totalGold}
+- Damage Taken: ${totalDamage}
+${drops.length > 0 ? `\nDrops:\n${drops.map(d => `- ${d}`).join('\n')}` : ''}
+
+HP: ${rpgData.health}/${rpgData.maxHealth}
+Gold: ${rpgData.gold.toLocaleString('id-ID')}`
+
+    if (leveledUp) {
+        result += `\n\nLEVEL UP! Level ${rpgData.level}`
+    }
+    
+    m.reply(result)
+}
+break
+
+// Tambah boss fight
+case 'boss': case 'bossfight': {
+    const rpgData = db.users[m.sender].rpg
+    if (!rpgData?.registered) return m.reply(`Belum terdaftar! Gunakan ${prefix}daftar`)
+    
+    if (rpgData.level < 10) return m.reply('Level minimal 10 untuk fight boss!')
+    
+    const bosses = [
+        { name: 'Goblin King', level: 10, hp: 500, damage: 30, reward: { exp: 500, gold: 2000 }},
+        { name: 'Dragon Lord', level: 15, hp: 1000, damage: 50, reward: { exp: 1000, gold: 5000 }},
+        { name: 'Demon Emperor', level: 20, hp: 2000, damage: 80, reward: { exp: 2000, gold: 10000 }},
+        { name: 'Ancient God', level: 30, hp: 5000, damage: 150, reward: { exp: 5000, gold: 25000 }}
+    ]
+    
+    const availableBosses = bosses.filter(b => rpgData.level >= b.level)
+    
+    if (!text) {
+        let bossText = '*BOSS FIGHTS*\n\nAvailable:\n'
+        availableBosses.forEach((b, i) => {
+            bossText += `${i + 1}. ${b.name} (Lv.${b.level})\n`
+            bossText += `   HP: ${b.hp} | DMG: ${b.damage}\n`
+            bossText += `   Reward: ${b.reward.exp} EXP, ${b.reward.gold} Gold\n\n`
+        })
+        return m.reply(bossText + `Format: ${prefix}boss <nomor>`)
+    }
+    
+    const bossIndex = parseInt(text) - 1
+    if (isNaN(bossIndex) || !availableBosses[bossIndex]) {
+        return m.reply('Boss tidak valid!')
+    }
+    
+    const boss = availableBosses[bossIndex]
+    
+    // Calculate player total damage
+    const playerDmg = rpgData.strength + (rpgData.intelligence * 0.5)
+    const playerDef = rpgData.defense
+    const critChance = rpgData.agility * 0.5
+    
+    // Simulate battle
+    let bossHP = boss.hp
+    let playerHP = rpgData.health
+    let turns = 0
+    let critHits = 0
+    
+    while (bossHP > 0 && playerHP > 0 && turns < 50) {
+        // Player attack
+        let damage = Math.floor(playerDmg * (0.8 + Math.random() * 0.4))
+        const isCrit = Math.random() * 100 < critChance
+        
+        if (isCrit) {
+            damage *= 2
+            critHits++
+        }
+        
+        bossHP -= damage
+        rpgData.stats.damageDealt += damage
+        
+        if (bossHP <= 0) break
+        
+        // Boss attack
+        let bossDmg = Math.floor(boss.damage * (0.8 + Math.random() * 0.4))
+        bossDmg = Math.max(1, bossDmg - playerDef)
+        
+        playerHP -= bossDmg
+        rpgData.stats.damageTaken += bossDmg
+        turns++
+    }
+    
+    rpgData.health = Math.max(1, playerHP)
+    rpgData.stats.criticalHits += critHits
+    
+    if (bossHP <= 0) {
+        // Victory
+        rpgData.exp += boss.reward.exp
+        rpgData.gold += boss.reward.gold
+        rpgData.stats.bossesDefeated++
+        
+        // Boss drops
+        const legendaryItems = ['Legendary Sword', 'Dragon Scale Armor', 'Ring of Power']
+        if (Math.random() < 0.1) {
+            const drop = pickRandom(legendaryItems)
+            rpgData.inventory[drop] = (rpgData.inventory[drop] || 0) + 1
+        }
+        
+        m.reply(`*VICTORY!*
+
+Boss: ${boss.name}
+Turns: ${turns}
+Critical Hits: ${critHits}
+
+Rewards:
+- EXP: +${boss.reward.exp}
+- Gold: +${boss.reward.gold}
+
+HP Remaining: ${playerHP}/${rpgData.maxHealth}
+
+You defeated ${boss.name}!`)
     } else {
-        m.reply('❌ Kamu sudah terdaftar sebagai petualang!')
+        // Defeat
+        rpgData.stats.deaths++
+        rpgData.health = Math.floor(rpgData.maxHealth * 0.1)
+        
+        m.reply(`*DEFEAT!*
+
+Boss: ${boss.name}
+You were defeated...
+
+HP: ${rpgData.health}/${rpgData.maxHealth}
+
+Train harder and try again!`)
     }
 }
 break
 
-case 'profilerpg': {
+// Tambah skill system
+case 'skills': case 'skill': {
     const rpgData = db.users[m.sender].rpg
-    if (!isLimit) return m.reply(mess.limit)
-    if (!rpgData?.registered) return m.reply(`❌ Kamu belum terdaftar!\nGunakan ${prefix}daftar untuk mendaftar`)
+    if (!rpgData?.registered) return m.reply(`Belum terdaftar! Gunakan ${prefix}daftar`)
     
-    const expNeeded = rpgData.level * 100
-    const expProgress = ((rpgData.exp / expNeeded) * 100).toFixed(1)
+    const classSkills = {
+        warrior: [
+            { name: 'Power Strike', level: 5, cost: 20, desc: 'Deal 2x damage' },
+            { name: 'Iron Defense', level: 10, cost: 30, desc: 'Reduce damage 50%' },
+            { name: 'Berserk', level: 15, cost: 50, desc: 'ATK +50% for 3 turns' }
+        ],
+        mage: [
+            { name: 'Fireball', level: 5, cost: 25, desc: 'Magic damage 2.5x' },
+            { name: 'Ice Shield', level: 10, cost: 35, desc: 'Block next attack' },
+            { name: 'Meteor', level: 15, cost: 60, desc: 'Massive AoE damage' }
+        ],
+        archer: [
+            { name: 'Rapid Fire', level: 5, cost: 20, desc: 'Attack 3 times' },
+            { name: 'Eagle Eye', level: 10, cost: 30, desc: 'Critical rate +50%' },
+            { name: 'Arrow Storm', level: 15, cost: 50, desc: 'Multi-target attack' }
+        ],
+        assassin: [
+            { name: 'Backstab', level: 5, cost: 25, desc: 'Critical damage 3x' },
+            { name: 'Shadow Step', level: 10, cost: 30, desc: 'Evade next attack' },
+            { name: 'Death Mark', level: 15, cost: 55, desc: 'DoT + Crit bonus' }
+        ]
+    }
     
-    let equipText = ''
-    if (rpgData.equipment.weapon) equipText += `⚔️ ${rpgData.equipment.weapon}\n`
-    if (rpgData.equipment.armor) equipText += `🛡️ ${rpgData.equipment.armor}\n`
-    if (rpgData.equipment.accessory) equipText += `💍 ${rpgData.equipment.accessory}\n`
+    const skills = classSkills[rpgData.class]
+    const unlockedSkills = skills.filter(s => rpgData.level >= s.level)
     
-    m.reply(`👤 *PROFILE RPG*
-
-🎭 Nama: ${m.pushName}
-⚔️ Level: ${rpgData.level}
-📊 EXP: ${rpgData.exp}/${expNeeded} (${expProgress}%)
-
-❤️ HP: ${rpgData.health}/${rpgData.maxHealth}
-💙 Mana: ${rpgData.mana}/${rpgData.maxMana}
-
-💪 Strength: ${rpgData.strength}
-🛡️ Defense: ${rpgData.defense}
-⚡ Agility: ${rpgData.agility}
-🧠 Intelligence: ${rpgData.intelligence}
-
-💰 Gold: ${rpgData.gold.toLocaleString()}
-
-🎯 *Equipment:*
-${equipText || 'Tidak ada equipment'}
-
-📈 *Statistik:*
-🗡️ Monster: ${rpgData.stats.monstersKilled}
-🏰 Dungeon: ${rpgData.stats.dungeonsCleared}
-👹 Boss: ${rpgData.stats.bossesDefeated}
-💀 Deaths: ${rpgData.stats.deaths}`)
+    let text = `*${rpgData.class.toUpperCase()} SKILLS*\n\n`
+    
+    unlockedSkills.forEach(s => {
+        text += `- ${s.name} (Lv.${s.level})\n`
+        text += `  Mana: ${s.cost} | ${s.desc}\n\n`
+    })
+    
+    if (unlockedSkills.length < skills.length) {
+        text += '*Locked Skills:*\n'
+        skills.filter(s => rpgData.level < s.level).forEach(s => {
+            text += `- ${s.name} (Unlock at Lv.${s.level})\n`
+        })
+    }
+    
+    m.reply(text)
 }
 break
 
@@ -4986,6 +5381,13 @@ case 'shop': case 'toko': {
 - Mana Potion - 50 gold (Restore 30 Mana)
 - Elixir - 200 gold (Full restore)
 
+// Setelah Consumables section, tambahkan:
+
+💎 *Legendary:*
+- Legendary Sword - 10000 gold (+30 STR)
+- Dragon Armor - 8000 gold (+25 DEF)
+- Ring of Power - 5000 gold (+10 ALL)
+
 Gunakan: ${prefix}beli <item>
 Contoh: ${prefix}beli Iron Sword`
 
@@ -5007,8 +5409,11 @@ case 'buy': case 'beli': {
         'Diamond Armor': { price: 1500, type: 'armor', bonus: 20 },
         'Health Potion': { price: 50, type: 'consumable' },
         'Mana Potion': { price: 50, type: 'consumable' },
-        'Elixir': { price: 200, type: 'consumable' }
-    }
+        'Elixir': { price: 200, type: 'consumable' },
+        'Legendary Sword': { price: 10000, type: 'weapon', bonus: 30 },
+        'Dragon Armor': { price: 8000, type: 'armor', bonus: 25 },
+        'Ring of Power': { price: 5000, type: 'accessory', bonus: 10 }
+}
     
     const itemName = text.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
     const item = items[itemName]
@@ -5072,8 +5477,11 @@ case 'equip': case 'pakai': {
     
     if (!rpgData.inventory[itemName]) return m.reply('❌ Kamu tidak punya item ini!')
     
-    const weapons = { 'Iron Sword': 5, 'Steel Sword': 10, 'Excalibur': 25 }
-    const armors = { 'Leather Armor': 3, 'Iron Armor': 8, 'Diamond Armor': 20 }
+    const weapons = { 'Iron Sword': 5, 'Steel Sword': 10, 'Excalibur': 25, 'Legendary Sword': 30 }
+    const armors = { 'Leather Armor': 3, 'Iron Armor': 8, 'Diamond Armor': 20, 'Dragon Armor': 25 }
+    const accessories = {
+        'Ring of Power': 10
+    }
     
     if (weapons[itemName]) {
         if (rpgData.equipment.weapon) {
@@ -5095,6 +5503,22 @@ case 'equip': case 'pakai': {
         rpgData.defense += armors[itemName]
         delete rpgData.inventory[itemName]
         m.reply(`🛡️ Kamu melengkapi ${itemName}\n🛡️ DEF +${armors[itemName]}`)
+    } else if (accessories[itemName]) {
+    if (rpgData.equipment.accessory) {
+        const oldBonus = accessories[rpgData.equipment.accessory] || 0
+        rpgData.strength -= oldBonus
+        rpgData.defense -= oldBonus
+        rpgData.agility -= oldBonus
+        rpgData.intelligence -= oldBonus
+        rpgData.inventory[rpgData.equipment.accessory] = (rpgData.inventory[rpgData.equipment.accessory] || 0) + 1
+    }
+    rpgData.equipment.accessory = itemName
+    rpgData.strength += accessories[itemName]
+    rpgData.defense += accessories[itemName]
+    rpgData.agility += accessories[itemName]
+    rpgData.intelligence += accessories[itemName]
+    delete rpgData.inventory[itemName]
+    m.reply(`Kamu melengkapi ${itemName}\nALL STATS +${accessories[itemName]}`)
     } else {
         m.reply('❌ Item ini tidak bisa di-equip!')
     }
@@ -5186,6 +5610,278 @@ case 'dailyrpg': {
 🔥 Streak: Day ${streak}
 
 Kembali lagi besok untuk reward lebih banyak!`)
+}
+break
+
+// ============ AIRDROP SYSTEM ============
+// Tambahkan setelah case 'bansos'
+
+case 'airdrop': {
+    const userData = db.users[m.sender]
+    if (!userData) return m.reply('Data user tidak ditemukan!')
+    
+    // Initialize airdrop data
+    if (!userData.airdrop) {
+        userData.airdrop = {
+            lastClaim: 0,
+            totalClaimed: 0,
+            streak: 0,
+            lastStreakDate: null
+        }
+    }
+    
+    // Initialize gold currency
+    if (!userData.gold) userData.gold = 0
+    
+    // Initialize global airdrop event
+    if (!global.airdropEvent) {
+        global.airdropEvent = {
+            active: false,
+            participants: [],
+            rewards: {},
+            endTime: 0,
+            creator: null
+        }
+    }
+    
+    if (!text) {
+        const cooldown = 43200000
+        const timeSince = Date.now() - userData.airdrop.lastClaim
+        const canClaim = timeSince >= cooldown
+        
+        return m.reply(`*AIRDROP SYSTEM*
+
+Status Kamu:
+- Total Claimed: ${userData.airdrop.totalClaimed}x
+- Streak: ${userData.airdrop.streak} hari
+${canClaim ? '- Status: Siap claim' : `- Cooldown: ${Math.ceil((cooldown - timeSince) / 60000)} menit`}
+
+Balance:
+- Money: ${userData.money.toLocaleString('id-ID')}
+- Limit: ${userData.limit}
+- Gold: ${userData.gold}
+
+Commands:
+${prefix}airdrop claim
+${prefix}airdrop info
+${prefix}airdrop leaderboard
+
+${global.airdropEvent.active ? `\nEVENT AKTIF!\nReward: Money ${global.airdropEvent.rewards.money}, Limit ${global.airdropEvent.rewards.limit}, Gold ${global.airdropEvent.rewards.gold}\nPeserta: ${global.airdropEvent.participants.length}\nBerakhir: ${new Date(global.airdropEvent.endTime).toLocaleString('id-ID')}` : ''}`)
+    }
+    
+    switch(args[0]?.toLowerCase()) {
+        case 'claim': {
+            const cooldown = 21600000 // 6 jam
+            const timeSince = Date.now() - userData.airdrop.lastClaim
+            
+            if (timeSince < cooldown) {
+                const timeLeft = Math.ceil((cooldown - timeSince) / 60000)
+                return m.reply(`Tunggu ${timeLeft} menit untuk claim lagi`)
+            }
+            
+            // Check streak
+            const today = new Date().toDateString()
+            const lastDate = userData.airdrop.lastStreakDate
+            const yesterday = new Date(Date.now() - 86400000).toDateString()
+            
+            if (lastDate === yesterday) {
+                userData.airdrop.streak++
+            } else if (lastDate !== today) {
+                userData.airdrop.streak = 1
+            }
+            
+            userData.airdrop.lastStreakDate = today
+            
+            // Calculate base rewards
+            let rewards = {
+                money: 5000 + (userData.airdrop.streak * 500),
+                limit: 3 + Math.floor(userData.airdrop.streak / 3),
+                gold: 10 + (userData.airdrop.streak * 2)
+            }
+            
+            // Bonus berdasarkan level RPG (jika ada)
+            if (userData.rpg?.level) {
+                rewards.money += userData.rpg.level * 100
+                rewards.gold += userData.rpg.level
+            }
+            
+            // Random jackpot (5% chance)
+            const jackpot = Math.random() < 0.05
+            if (jackpot) {
+                rewards.money *= 5
+                rewards.limit *= 2
+                rewards.gold *= 3
+            }
+            
+            // Bonus streak milestone
+            if (userData.airdrop.streak === 7) {
+                rewards.money += 10000
+                rewards.limit += 5
+                rewards.gold += 50
+            } else if (userData.airdrop.streak === 30) {
+                rewards.money += 50000
+                rewards.limit += 20
+                rewards.gold += 200
+            }
+            
+            // Apply rewards
+            userData.money += rewards.money
+            userData.limit += rewards.limit
+            userData.gold += rewards.gold
+            
+            userData.airdrop.lastClaim = Date.now()
+            userData.airdrop.totalClaimed++
+            
+            // Event participation
+            let eventText = ''
+            if (global.airdropEvent.active && Date.now() < global.airdropEvent.endTime) {
+                if (!global.airdropEvent.participants.includes(m.sender)) {
+                    global.airdropEvent.participants.push(m.sender)
+                    const eventRewards = global.airdropEvent.rewards
+                    userData.money += eventRewards.money || 0
+                    userData.limit += eventRewards.limit || 0
+                    userData.gold += eventRewards.gold || 0
+                    eventText = `\n\nBONUS EVENT:\n- Money: +${eventRewards.money}\n- Limit: +${eventRewards.limit}\n- Gold: +${eventRewards.gold}`
+                }
+            }
+            
+            m.reply(`${jackpot ? 'JACKPOT!\n\n' : ''}*AIRDROP CLAIMED*
+
+Rewards:
+- Money: +${rewards.money.toLocaleString('id-ID')}
+- Limit: +${rewards.limit}
+- Gold: +${rewards.gold}
+
+Streak: ${userData.airdrop.streak} hari
+Total Claimed: ${userData.airdrop.totalClaimed}x
+
+Balance Sekarang:
+- Money: ${userData.money.toLocaleString('id-ID')}
+- Limit: ${userData.limit}
+- Gold: ${userData.gold}${eventText}
+
+${jackpot ? '\nKamu mendapat JACKPOT! Reward 5x lipat!' : ''}
+${userData.airdrop.streak === 7 ? '\nBonus 7 hari streak!' : ''}
+${userData.airdrop.streak === 30 ? '\nBonus 30 hari streak!' : ''}`)
+        }
+        break
+        
+        case 'info': {
+            const nextReward = {
+                money: 5000 + (userData.airdrop.streak * 500),
+                limit: 3 + Math.floor(userData.airdrop.streak / 3),
+                gold: 10 + (userData.airdrop.streak * 2)
+            }
+            
+            m.reply(`*AIRDROP INFO*
+
+Player: @${m.sender.split('@')[0]}
+
+Statistik:
+- Total Claimed: ${userData.airdrop.totalClaimed}x
+- Streak: ${userData.airdrop.streak} hari
+- Last Claim: ${userData.airdrop.lastClaim ? new Date(userData.airdrop.lastClaim).toLocaleString('id-ID') : 'Belum pernah'}
+
+Next Reward:
+- Money: ${nextReward.money.toLocaleString('id-ID')}
+- Limit: ${nextReward.limit}
+- Gold: ${nextReward.gold}
+
+Tips:
+- Claim setiap hari untuk streak bonus
+- Streak meningkatkan reward
+- 5% chance jackpot (5x rewards)
+- Bonus milestone di 7 & 30 hari
+- Bonus tambahan untuk RPG players
+
+Cooldown: 6 jam per claim`)
+        }
+        break
+        
+        case 'leaderboard': case 'lb': {
+            const users = Object.entries(db.users)
+                .filter(([id, data]) => data.airdrop?.totalClaimed > 0)
+                .sort((a, b) => b[1].airdrop.totalClaimed - a[1].airdrop.totalClaimed)
+                .slice(0, 10)
+            
+            if (users.length === 0) return m.reply('Belum ada yang claim airdrop')
+            
+            let text = `*AIRDROP LEADERBOARD*\n\n`
+            
+            for (let i = 0; i < users.length; i++) {
+                const [id, data] = users[i]
+                const medal = i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : `${i + 1}.`
+                text += `${medal}. @${id.split('@')[0]}\n`
+                text += `   Claims: ${data.airdrop.totalClaimed} | Streak: ${data.airdrop.streak}\n\n`
+            }
+            
+            const userRank = users.findIndex(([id]) => id === m.sender)
+            if (userRank !== -1) {
+                text += `\nRanking kamu: #${userRank + 1}`
+            }
+            
+            m.reply(text)
+        }
+        break
+        
+        case 'create': {
+            if (!isCreator) return m.reply(mess.owner)
+            
+            if (!args[1] || !args[2] || !args[3] || !args[4]) {
+                return m.reply(`Format: ${prefix}airdrop create <money> <limit> <gold> <durasi_jam>
+
+Contoh: ${prefix}airdrop create 10000 5 20 2`)
+            }
+            
+            const money = parseInt(args[1])
+            const limit = parseInt(args[2])
+            const gold = parseInt(args[3])
+            const duration = parseInt(args[4])
+            
+            if (isNaN(money) || isNaN(limit) || isNaN(gold) || isNaN(duration)) {
+                return m.reply('Semua nilai harus angka')
+            }
+            
+            global.airdropEvent = {
+                active: true,
+                participants: [],
+                rewards: { money, limit, gold },
+                endTime: Date.now() + (duration * 3600000),
+                creator: m.sender
+            }
+            
+            m.reply(`*AIRDROP EVENT CREATED*
+
+Rewards:
+- Money: ${money.toLocaleString('id-ID')}
+- Limit: ${limit}
+- Gold: ${gold}
+
+Durasi: ${duration} jam
+Berakhir: ${new Date(global.airdropEvent.endTime).toLocaleString('id-ID')}`)
+            
+            // Auto end event
+            setTimeout(() => {
+                if (global.airdropEvent.active) {
+                    global.airdropEvent.active = false
+                    m.reply(`Event airdrop berakhir!\nTotal peserta: ${global.airdropEvent.participants.length}`)
+                }
+            }, duration * 3600000)
+        }
+        break
+        
+        case 'end': {
+            if (!isCreator) return m.reply(mess.owner)
+            if (!global.airdropEvent.active) return m.reply('Tidak ada event aktif')
+            
+            global.airdropEvent.active = false
+            m.reply(`Event airdrop dihentikan!\nTotal peserta: ${global.airdropEvent.participants.length}`)
+        }
+        break
+        
+        default:
+            m.reply(`Command tidak dikenal\n\nGunakan:\n${prefix}airdrop claim\n${prefix}airdrop info\n${prefix}airdrop leaderboard`)
+    }
 }
 break
 			case 'allmenu': {
@@ -5887,7 +6583,7 @@ break
 		if (errorCache[errorKey].length >= 3) return;
 		errorCache[errorKey].push(now);
 		m.reply('Error: ' + (e?.name || e?.code || e?.output?.statusCode || e?.status || 'Tidak diketahui') + '\nLog Error Telah dikirim ke Owner\n\n')
-		return naze.sendFromOwner(ownerNumber, `Halo sayang, sepertinya ada yang error nih, jangan lupa diperbaiki ya\n\nVersion : *${require('./package.json').version}*\n\n*Log error:*\n\n` + util.format(e), m, { contextInfo: { isForwarded: true }})
+		return naze.sendFromOwner(ownerNumber, `AWOKAWOKAWOK, ERROR! 😂\n\nVersion : *${require('./package.json').version}*\n\n*Log error:*\n\n` + util.format(e), m, { contextInfo: { isForwarded: true }})
 	}
 }
 
